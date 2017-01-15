@@ -38,11 +38,14 @@ def replace(f, o, n):
     php_file.close()
 
 
-def remove_lines_bound(f, start, end=None):
+def remove_lines_bound(f, start, end=None, ignore_leading_spaces=True):
     php_file = fileinput.FileInput(f, inplace=True)
     end = '[' + end + ']$' if end else ''
     for line in php_file:
-        reg = '.*' + start + '.*' + end
+        if ignore_leading_spaces:
+            reg = '^(( )*' + start + ').*' + end
+        else:
+            reg = '^' + start + '.*' + end
         if re.match(reg, line):
             continue
 
@@ -56,7 +59,7 @@ def add_self_to_functions(f):
 
     php_file = fileinput.FileInput(f, inplace=True)
     for line in php_file:
-        reg = r'(.*)(public|protected) function (.*)\((.*)\)$'
+        reg = r'(.*)(public|protected) function (.*)\((.*)\)'
         match = re.match(reg, line)
         if match:
 
@@ -139,7 +142,7 @@ def convert2python(php_script, py_script, overwrite):
     replace(py_script, '$this->', 'self.')
 
     logger.info('# convert :: to .')
-    replace(py_script, '::', '')
+    replace(py_script, '::', '.')
 
     logger.info('# delete all }')
     logger.info('# delete namespace|require_once|include_once')
