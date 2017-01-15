@@ -122,6 +122,11 @@ def class_definition(f):
     php_file.close()
 
 
+def process_if(py_script):
+    # todo process if statements (remove brackets and add colon)
+    pass
+
+
 def convert2python(php_script, py_script, overwrite):
     if not os.path.exists(php_script):
         logger.error("Could not locate PHP script: %s" % php_script)
@@ -169,6 +174,10 @@ def convert2python(php_script, py_script, overwrite):
 
     logger.info('# convert new to \'\'')
     replace(py_script, 'new ', '')
+
+    logger.info('# Process if statements')
+    process_if(py_script)
+
     logger.info(("Converted: %s. to: %s. { Go on, Proof Check :) }" % (php_script, py_script)))
 
 
