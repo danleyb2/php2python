@@ -2,9 +2,25 @@
 
 import argparse
 import fileinput
+import logging
 import os
 import re
 import shutil
+
+# create logger
+logger = logging.getLogger('php2python')
+logger.setLevel(logging.INFO)
+
+# console handler
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+formatter1 = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter2 = logging.Formatter('%(levelname)s - %(message)s')
+
+ch.setFormatter(formatter2)
+
+logger.addHandler(ch)
 
 declarations = []
 
@@ -85,13 +101,16 @@ def process_class_declarations(f):
 def class_definition(f):
     php_file = fileinput.FileInput(f, inplace=True)
     for line in php_file:
-        reg = r'class (.*)'
+        reg = r'class (\w+)( extends (\w+)|)'
         match = re.match(reg, line)
         if match:
             groups = match.groups()
             class_name = groups[0]
-            class_def = 'class ' + class_name + '(object):'
+            class_parent = groups[2] or 'object'
+            if groups[2]:
+                logger.warning("You need to import " + groups[2])
 
+            class_def = 'class ' + class_name + '(' + class_parent + '):'
             print class_def
 
         else:
@@ -102,50 +121,52 @@ def class_definition(f):
 
 def convert2python(php_script, py_script, overwrite):
     if not os.path.exists(php_script):
-        raise Exception("Could not locate PHP script: %s" % php_script)
+        logger.error("Could not locate PHP script: %s" % php_script)
+        return
 
     if os.path.exists(py_script):
         if not overwrite:
-            print("Sorry, A python Script %s already exist, use -o to overwrite." % py_script)
+            logger.error("Sorry, A python Script %s already exist, use -o to overwrite." % py_script)
             return
 
-    print("Converting: %s. Output file will be: %s" % (php_script, py_script))
+    logger.info("Converting: %s. Output file will be: %s" % (php_script, py_script))
     shutil.copyfile(php_script, py_script)
 
-    print '# Remove opening and closing <?php'
+    logger.info('# Remove opening and closing <?php')
     replace(py_script, '<?php', '')
 
-    print '# convert $this-> to self.'
+    logger.info('# convert $this-> to self.')
     replace(py_script, '$this->', 'self.')
 
-    print '# convert :: to .'
+    logger.info('# convert :: to .')
     replace(py_script, '::', '')
 
-    print '# delete all }'
-    print '# delete namespace|require_once|include_once'
+    logger.info('# delete all }')
+    logger.info('# delete namespace|require_once|include_once')
     remove_lines_bound(py_script, "namespace", ";")
     remove_lines_bound(py_script, "require_once", ";")
     remove_lines_bound(py_script, "include_once", ";")
     remove_lines_bound(py_script, "\{", "")
     remove_lines_bound(py_script, "\}", "")
 
-    print '# convert protected $var to self.var = None then move into __init__'
-    print '# convert public|protected function to def'
-    print '# add `self` to function signatures'
+    logger.info('# convert protected $var to self.var = None then move into __init__')
+    logger.info('# convert public|protected function to def')
+    logger.info('# add `self` to function signatures')
     add_self_to_functions(py_script)
 
-    print '# classes not children to extend `object`'
+    logger.info('# classes not children to extend `object`')
+    logger.info('# process child classes')
     class_definition(py_script)
 
-    print '# convert $ to \'\''
+    logger.info('# convert $ to \'\'')
     replace(py_script, '$', '')
 
-    print '# convert ; to \'\''
+    logger.info('# convert ; to \'\'')
     replace(py_script, ';', '')
 
-    print '# convert new to \'\''
+    logger.info('# convert new to \'\'')
     replace(py_script, 'new ', '')
-    print("Converted: %s. to: %s. { Go on, Proof Check :) }" % (php_script, py_script))
+    logger.info(("Converted: %s. to: %s. { Go on, Proof Check :) }" % (php_script, py_script)))
 
 
 def main():
