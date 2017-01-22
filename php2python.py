@@ -9,10 +9,16 @@ import shutil
 
 # create logger
 logger = logging.getLogger('php2python')
-logger.setLevel(logging.INFO)
+
+debug = True
 
 # console handler
 ch = logging.StreamHandler()
+if debug:
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
+
 ch.setLevel(logging.DEBUG)
 
 formatter1 = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -41,11 +47,11 @@ def replace(f, o, n):
 def remove_lines_bound(f, start, end=None, ignore_leading_spaces=True):
     php_file = fileinput.FileInput(f, inplace=True)
     end = '[' + end + ']$' if end else ''
+    if ignore_leading_spaces:
+        reg = '^(( )*' + start + ').*' + end
+    else:
+        reg = '^' + start + '.*' + end
     for line in php_file:
-        if ignore_leading_spaces:
-            reg = '^(( )*' + start + ').*' + end
-        else:
-            reg = '^' + start + '.*' + end
         if re.match(reg, line):
             continue
 
