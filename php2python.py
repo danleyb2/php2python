@@ -129,8 +129,35 @@ def class_definition(f):
 
 
 def process_if(py_script):
-    # todo process if statements (remove brackets and add colon)
-    pass
+    php_file = fileinput.FileInput(py_script, inplace=True)
+    for line in php_file:
+        reg = r'(.*)if(.*)\((.*)\)(.*)\{$'
+        match = re.match(reg, line)
+        if match:
+            groups = match.groups()
+            if_indent = groups[0]
+            if_line = if_indent + 'if ' + groups[2] + ':'
+            print(if_line)
+        else:
+            print(line),
+
+    php_file.close()
+
+
+def process_else(py_script):
+    php_file = fileinput.FileInput(py_script, inplace=True)
+    for line in php_file:
+        reg = r'(.*)\}(.*)else(.*)(.*)\{$'
+        match = re.match(reg, line)
+        if match:
+            groups = match.groups()
+            else_indent = groups[0]
+            else_line = else_indent + 'else :'
+            print(else_line)
+        else:
+            print(line),
+
+    php_file.close()
 
 
 def convert2python(php_script, py_script, overwrite):
@@ -154,6 +181,12 @@ def convert2python(php_script, py_script, overwrite):
 
     logger.info('# convert :: to .')
     replace(py_script, '::', '.')
+
+    logger.info('# Process if statements')
+    process_if(py_script)
+
+    logger.info('# Process else statements')
+    process_else(py_script)
 
     logger.info('# delete all }')
     logger.info('# delete namespace|require_once|include_once')
@@ -180,9 +213,6 @@ def convert2python(php_script, py_script, overwrite):
 
     logger.info('# convert new to \'\'')
     replace(py_script, 'new ', '')
-
-    logger.info('# Process if statements')
-    process_if(py_script)
 
     logger.info(("Converted: %s. to: %s. { Go on, Proof Check :) }" % (php_script, py_script)))
 
