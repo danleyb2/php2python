@@ -29,6 +29,9 @@ ch.setFormatter(formatter2)
 logger.addHandler(ch)
 
 declarations = []
+in_foreach = False
+in_if = False
+last_indent = None
 
 
 def python_script_name(php_script):
@@ -160,6 +163,26 @@ def process_else(py_script):
     php_file.close()
 
 
+def process_foreach(py_script):
+    php_file = fileinput.FileInput(py_script, inplace=True)
+    for line in php_file:
+        reg = r'(.*)foreach(.*)\((.*) as (.*)\)(.*)\{$'
+        match = re.match(reg, line)
+        if match:
+
+            groups = match.groups()
+            foreach_indent = groups[0]
+            needle = groups[3]
+            haystack = groups[2]
+            foreach_line = foreach_indent+'for '+needle + ' in '+haystack+' :'
+
+            print(foreach_line)
+        else:
+            print(line),
+
+    php_file.close()
+
+
 def convert2python(php_script, py_script, overwrite):
     if not os.path.exists(php_script):
         logger.error("Could not locate PHP script: %s" % php_script)
@@ -213,6 +236,9 @@ def convert2python(php_script, py_script, overwrite):
 
     logger.info('# convert new to \'\'')
     replace(py_script, 'new ', '')
+
+    logger.info('# process foreach')
+    process_foreach(py_script)
 
     logger.info(("Converted: %s. to: %s. { Go on, Proof Check :) }" % (php_script, py_script)))
 
