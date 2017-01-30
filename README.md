@@ -5,6 +5,12 @@ A python script to convert simple php code to python,
 It just converts the basic syntax
 It is the one i use in the conversion mpg25/Instagram-API in PHP to danleyb2/Instagram-API in PYTHON 
 
+## Installation
+```
+    
+    pip install convert2php
+```
+
 ## usage
 ```
     $ python php2python.py -h
