@@ -14,6 +14,11 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 setuptools.setup(
     name='convert2php',
     packages=setuptools.find_packages(),
+    entry_points={
+          'console_scripts': [
+              'convert2php = src.php2python:main'
+          ]
+      },
     version=__version__,
     description='A python script to convert simple php code to python',
     author='Nyaundi Brian',
