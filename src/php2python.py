@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 
 # create logger
 logger = logging.getLogger('php2python')
@@ -42,7 +43,7 @@ def replace(f, o, n):
     php_file = fileinput.FileInput(f, inplace=True)
     for line in php_file:
         # sys.stdout.write('new text')
-        print(line.replace(o, n)),
+        sys.stdout.write(line.replace(o, n))
 
     php_file.close()
 
@@ -58,7 +59,7 @@ def remove_lines_bound(f, start, end=None, ignore_leading_spaces=True):
         if re.match(reg, line):
             continue
 
-        print(line),
+        sys.stdout.write(line)
 
     php_file.close()
 
@@ -77,16 +78,16 @@ def add_self_to_functions(f):
             function_name = '__init__' if groups[2] == '__construct' else groups[2]
             function_params = '(self,' + groups[3] + '):' if groups[3] else '(self):'
 
-            function = function_indent + 'def ' + function_name + function_params
-            print function
+            function = function_indent + 'def ' + function_name + function_params + "\n"
+            sys.stdout.write(function)
 
             if groups[2] == '__construct':
                 for declaration in declarations:
-                    print declaration
-                print
+                    sys.stdout.write(declaration)
+                #sys.stdout.write("")
                 # todo case of no constructor
         else:
-            print(line),
+            sys.stdout.write(line)
 
     php_file.close()
 
@@ -100,12 +101,12 @@ def process_class_declarations(f):
 
             groups = match.groups()
             declaration_indent = groups[0]
-            declaration = (declaration_indent * 2) + 'self.' + groups[2] + ' = None'
+            declaration = (declaration_indent * 2) + 'self.' + groups[2] + ' = None\n'
 
             declarations.append(declaration)
             continue
         else:
-            print(line),
+            sys.stdout.write(line)
 
     php_file.close()
 
@@ -122,11 +123,11 @@ def class_definition(f):
             if groups[2]:
                 logger.warning("You need to import " + groups[2])
 
-            class_def = 'class ' + class_name + '(' + class_parent + '):'
-            print class_def
+            class_def = 'class ' + class_name + '(' + class_parent + '):\n'
+            sys.stdout.write(class_def)
 
         else:
-            print(line),
+            sys.stdout.write(line)
 
     php_file.close()
 
@@ -139,10 +140,10 @@ def process_if(py_script):
         if match:
             groups = match.groups()
             if_indent = groups[0]
-            if_line = if_indent + 'if ' + groups[2] + ':'
-            print(if_line)
+            if_line = if_indent + 'if ' + groups[2] + ':\n'
+            sys.stdout.write(if_line)
         else:
-            print(line),
+            sys.stdout.write(line)
 
     php_file.close()
 
@@ -155,10 +156,10 @@ def process_else(py_script):
         if match:
             groups = match.groups()
             else_indent = groups[0]
-            else_line = else_indent + 'else :'
-            print(else_line)
+            else_line = else_indent + 'else:\n'
+            sys.stdout.write(else_line)
         else:
-            print(line),
+            sys.stdout.write(line)
 
     php_file.close()
 
@@ -174,11 +175,43 @@ def process_foreach(py_script):
             foreach_indent = groups[0]
             needle = groups[3]
             haystack = groups[2]
-            foreach_line = foreach_indent+'for '+needle + ' in '+haystack+' :'
+            foreach_line = foreach_indent+'for '+needle + ' in '+haystack+' :\n'
 
-            print(foreach_line)
+            sys.stdout.write(foreach_line)
         else:
-            print(line),
+            sys.stdout.write(line)
+
+    php_file.close()
+
+
+def process_try(py_script):
+    php_file = fileinput.FileInput(py_script, inplace=True)
+    for line in php_file:
+        reg = r'(.*)try(.*)\{$'
+        match = re.match(reg, line)
+        if match:
+            groups = match.groups()
+            try_indent = groups[0]
+            try_line = try_indent + 'try:\n'
+            sys.stdout.write(try_line)
+        else:
+            sys.stdout.write(line)
+
+    php_file.close()
+
+
+def process_catch(py_script):
+    php_file = fileinput.FileInput(py_script, inplace=True)
+    for line in php_file:
+        reg = r'(.*)}(.*)catch(.*)\((.*) +(.*)\)(.*)\{$'
+        match = re.match(reg, line)
+        if match:
+            groups = match.groups()
+            catch_indent = groups[0]
+            catch_line = catch_indent + 'except ' + groups[3] + ' as ' + groups[4] + ':\n'
+            sys.stdout.write(catch_line)
+        else:
+            sys.stdout.write(line)
 
     php_file.close()
 
@@ -210,6 +243,12 @@ def convert2python(php_script, py_script, overwrite):
 
     logger.info('# Process else statements')
     process_else(py_script)
+
+    logger.info('# Process try statements')
+    process_try(py_script)
+
+    logger.info('# Process catch statements')
+    process_catch(py_script)
 
     logger.info('# delete all }')
     logger.info('# delete namespace|require_once|include_once')
